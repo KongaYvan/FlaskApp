@@ -1,6 +1,5 @@
 name: CI Pipeline
 
-# Déclenchement du workflow
 on:
   push:
     branches: [ "main" ]
@@ -33,13 +32,13 @@ jobs:
   # 2️⃣ Job : Build et push Docker
   docker:
     runs-on: ubuntu-latest
-    needs: tests    # ✔️ ne s'exécute que si les tests passent
+    needs: tests   # ✔️ Ne s'exécute que si les tests passent
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Connexion à Docker Hub avec les secrets
+      # Connexion à Docker Hub avec les secrets GitHub
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -51,7 +50,7 @@ jobs:
         run: docker build -t flask-app .
 
       # Tag de l'image pour Docker Hub
-      - name: Tag image
+      - name: Tag Docker image
         run: docker tag flask-app ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
 
       # Push sur Docker Hub
