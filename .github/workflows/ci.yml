@@ -8,6 +8,7 @@ on:
 
 jobs:
 
+  # 1️⃣ Job : Tests unitaires
   tests:
     runs-on: ubuntu-latest
 
@@ -18,7 +19,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.10"
+          python-version: '3.10'
 
       - name: Install dependencies
         run: |
@@ -28,25 +29,65 @@ jobs:
       - name: Run tests
         run: pytest
 
+  # 2️⃣ Job : Build et push Docker
   docker:
     runs-on: ubuntu-latest
-    needs: tests   # 👈 n'exécute ce job que si les tests réussissent
+    needs: tests   # Ne s'exécute que si les tests passent
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Login to Docker Hub
+      # Docker Hub login
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # Build Docker image
       - name: Build Docker image
         run: docker build -t flask-app .
 
-      - name: Tag Docker image
+      # Tag image for Docker Hub
+      - name: Tag Docker image for Docker Hub
         run: docker tag flask-app ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
 
-      - name: Push image to Docker Hub
+      # Push to Docker Hub
+      - name: Push to Docker Hub
         run: docker push ${{ secrets.DOCKER_USERNAME }}/flask-app:latest
+
+      # Login to private registry
+      - name: Log in to Private Registry
+        uses: docker/login-action@v3
+        with:
+          registry: my.private.registry.com
+          username: ${{ secrets.PRIVATE_USER }}
+          password: ${{ secrets.PRIVATE_PASSWORD }}
+
+      # Tag for private registry
+      - name: Tag for Private Registry
+        run: docker tag flask-app my.private.registry.com/myrepo/flask-app:latest
+
+      # Push to private registry
+      - name: Push to Private Registry
+        run: docker push my.private.registry.com/myrepo/flask-app:latest
+
+  # 3️⃣ Job : Notification email si les tests échouent
+  notify:
+    runs-on: ubuntu-latest
+    needs: tests
+    if: failure()  # Ne s’exécute que si les tests échouent
+
+    steps:
+      - name: Send email notification
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USER }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "CI Pipeline: Tests Failed"
+          to: "ton-email@example.com"
+          from: "GitHub Actions"
+          body: "Les tests unitaires ont échoué dans le pipeline GitHub Actions."
